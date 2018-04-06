@@ -12,6 +12,13 @@ local pathLength = pathLengthFull
 
 local prompts = { '', 'λ', '', '', '', '', '', '', '', '', '', '', '', 'ﲹ', 'ﳀ', 'ﱫ', '', '', '', '' }
 
+local symbols = {
+    arrow = "",
+    branch = "",
+    merge = "",
+    home = "",
+}
+
 local function get_folder_name(path)
 	local reversePath = string.reverse(path)
 	local slashIndex = string.find(reversePath, "\\")
@@ -53,7 +60,7 @@ function lambda_prompt_filter()
 		cwd =  get_folder_name(cwd)
 	end
     local ostime = os.time()
-    prompt = "\x1b[37;44m "..getRandomPrompt(ostime).." {cwd} {git}\n\x1b[1;30;40m{prompt} \x1b[0m"
+    prompt = "\x1b[30;42m "..getRandomPrompt(ostime).." {cwd} {git}\n\x1b[32;40m{prompt} \x1b[0m"
     new_value = string.gsub(prompt, "{cwd}", cwd)
     clink.prompt.value = string.gsub(new_value, "{prompt}", getRandomPrompt(ostime))
 end
@@ -155,10 +162,10 @@ local function get_git_dir(path)
 end
 
 ---
- -- Get the status of working dir
+ -- True if the repo is clean, False otherwise
  -- @return {bool}
 ---
-function get_git_status()
+function is_git_clean()
     local file = io.popen("git --no-optional-locks status --porcelain 2>nul")
     for line in file:lines() do
         file:close()
@@ -168,19 +175,32 @@ function get_git_status()
     return true
 end
 
+function is_git_merging(git_dir)
+    local merge_file = git_dir and io.open(git_dir..'/MERGE_HEAD')
+    if not merge_file then
+        return false
+    else
+        merge_file:close()
+        return true
+    end
+end
+
 -- adopted from clink.lua
 -- Modified to add colors and arrow symbols
 function colorful_git_prompt_filter()
 
     -- Colors for git status
     local colors = {
-        clean = "\x1b[34;42m"..arrowSymbol.."\x1b[37;42m ",
-        dirty = "\x1b[34;43m"..arrowSymbol.."\x1b[30;43m ",
+		--         arrow;next segment             font;segment
+        clean = "\x1b[32;44m"..symbols.arrow.."\x1b[37;44m ",
+        dirty = "\x1b[32;43m"..symbols.arrow.."\x1b[30;43m ",
+        merge = "\x1b[32;43m"..symbols.arrow.."\x1b[30;43m ",
     }
 
     local closingcolors = {
-        clean = " \x1b[32;40m"..arrowSymbol,
-        dirty = "± \x1b[33;40m"..arrowSymbol,
+        clean = " \x1b[34;40m"..symbols.arrow,
+        dirty = " ± \x1b[33;40m"..symbols.arrow,
+        merge = " \x1b[33;41m"..symbols.arrow.."\x1b[37;41m "..symbols.merge.." \x1b[31;40m"..symbols.arrow,
     }
 
     local git_dir = get_git_dir()
@@ -189,22 +209,24 @@ function colorful_git_prompt_filter()
         local branch = get_git_branch(git_dir)
         if branch then
             -- Has branch => therefore it is a git folder, now figure out status
-            if get_git_status() then
+            if is_git_clean() then
                 color = colors.clean
                 closingcolor = closingcolors.clean
+            elseif is_git_merging(git_dir) then
+                color = colors.merge
+                closingcolor = closingcolors.merge
             else
                 color = colors.dirty
                 closingcolor = closingcolors.dirty
             end
 
-            --clink.prompt.value = string.gsub(clink.prompt.value, "{git}", color.."  "..branch..closingcolor)
-            clink.prompt.value = string.gsub(clink.prompt.value, "{git}", color.." "..branchSymbol.." "..branch..closingcolor)
+            clink.prompt.value = string.gsub(clink.prompt.value, "{git}", color..symbols.branch.." "..branch..closingcolor)
             return false
         end
     end
 
     -- No git present or not in git file
-    clink.prompt.value = string.gsub(clink.prompt.value, "{git}", "\x1b[34;40m"..arrowSymbol)
+    clink.prompt.value = string.gsub(clink.prompt.value, "{git}", "\x1b[32;40m"..symbols.arrow)
     return false
 end
 
