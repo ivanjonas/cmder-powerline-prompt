@@ -10,6 +10,8 @@ local pathLengthFolder = "folder"
  -- default is pathLengthFull
 local pathLength = pathLengthFull
 
+local prompts = { '', 'λ', '', '', '', '', '', '', '', '', '', '', '', 'ﲹ', 'ﳀ', 'ﱫ', '', '', '', '' }
+
 local function get_folder_name(path)
 	local reversePath = string.reverse(path)
 	local slashIndex = string.find(reversePath, "\\")
@@ -38,15 +40,22 @@ local function get_git_branch(git_dir)
     return branch_name or 'HEAD detached at '..HEAD:sub(1, 7)
 end
 
+function getRandomPrompt(ostime)
+    math.randomseed( ostime )
+    local rand = math.random( 1, #prompts )
+    return prompts[rand]
+end
+
 -- Resets the prompt 
 function lambda_prompt_filter()
     cwd = clink.get_cwd()
 	if pathLength == pathLengthFolder then
 		cwd =  get_folder_name(cwd)
 	end
-    prompt = "\x1b[37;44m{cwd} {git}\n\x1b[1;30;40m{lamb} \x1b[0m"
+    local ostime = os.time()
+    prompt = "\x1b[37;44m "..getRandomPrompt(ostime).." {cwd} {git}\n\x1b[1;30;40m{prompt} \x1b[0m"
     new_value = string.gsub(prompt, "{cwd}", cwd)
-    clink.prompt.value = string.gsub(new_value, "{lamb}", "λ")
+    clink.prompt.value = string.gsub(new_value, "{prompt}", getRandomPrompt(ostime))
 end
 
 local arrowSymbol = ""
