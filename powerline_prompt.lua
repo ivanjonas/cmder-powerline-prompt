@@ -1,13 +1,14 @@
--- Source: https://github.com/AmrEldib/cmder-powerline-prompt 
+-- Source: https://github.com/ivanjonas/cmder-powerline-prompt
+-- Original: https://github.com/AmrEldib/cmder-powerline-prompt 
 
---- promptValue is whether the displayed prompt is the full path or only the folder name
+--- pathLength is whether the displayed prompt is the full path or only the folder name
  -- Use:
  -- "full" for full path like C:\Windows\System32
-local promptValueFull = "full"
+local pathLengthFull = "full"
  -- "folder" for folder name only like System32
-local promptValueFolder = "folder"
- -- default is promptValueFull
-local promptValue = promptValueFull
+local pathLengthFolder = "folder"
+ -- default is pathLengthFull
+local pathLength = pathLengthFull
 
 local function get_folder_name(path)
 	local reversePath = string.reverse(path)
@@ -40,10 +41,10 @@ end
 -- Resets the prompt 
 function lambda_prompt_filter()
     cwd = clink.get_cwd()
-	if promptValue == promptValueFolder then
+	if pathLength == pathLengthFolder then
 		cwd =  get_folder_name(cwd)
 	end
-    prompt = "\x1b[37;44m{cwd} {git}{hg}\n\x1b[1;30;40m{lamb} \x1b[0m"
+    prompt = "\x1b[37;44m{cwd} {git}\n\x1b[1;30;40m{lamb} \x1b[0m"
     new_value = string.gsub(prompt, "{cwd}", cwd)
     clink.prompt.value = string.gsub(new_value, "{lamb}", "λ")
 end
@@ -100,43 +101,6 @@ local function get_dir_contains(path, dirname)
             return get_dir_contains(parent_path, dirname)
         end
     end
-end
-
--- copied from clink.lua
--- clink.lua is saved under %CMDER_ROOT%\vendor
-local function get_hg_dir(path)
-    return get_dir_contains(path, '.hg')
-end
-
--- adopted from clink.lua
--- clink.lua is saved under %CMDER_ROOT%\vendor
-function colorful_hg_prompt_filter()
-
-    -- Colors for mercurial status
-    local colors = {
-        clean = "\x1b[1;37;40m",
-        dirty = "\x1b[31;1m",
-    }
-
-    if get_hg_dir() then
-        -- if we're inside of mercurial repo then try to detect current branch
-        local branch = get_hg_branch()
-        if branch then
-            -- Has branch => therefore it is a mercurial folder, now figure out status
-            if get_hg_status() then
-                color = colors.clean
-            else
-                color = colors.dirty
-            end
-
-            clink.prompt.value = string.gsub(clink.prompt.value, "{hg}", color.."("..branch..")")
-            return false
-        end
-    end
-
-    -- No mercurial present or not in mercurial file
-    clink.prompt.value = string.gsub(clink.prompt.value, "{hg}", "")
-    return false
 end
 
 -- copied from clink.lua
@@ -237,5 +201,4 @@ end
 
 -- override the built-in filters
 clink.prompt.register_filter(lambda_prompt_filter, 55)
-clink.prompt.register_filter(colorful_hg_prompt_filter, 60)
 clink.prompt.register_filter(colorful_git_prompt_filter, 60)
