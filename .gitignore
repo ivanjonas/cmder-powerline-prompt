@@ -1,0 +1,5 @@
+# This repo is intended to exist inside /cmder/config/.
+# There will be other files unrelated to those in this repo.
+
+*
+!README.rmd
