@@ -60,13 +60,10 @@ function lambda_prompt_filter()
 		cwd =  get_folder_name(cwd)
 	end
     local ostime = os.time()
-    prompt = "\x1b[30;42m "..getRandomPrompt(ostime).." {cwd} {git}\n\x1b[32;40m{prompt} \x1b[0m"
+    prompt = "\x1b[30;42m "..getRandomPrompt(ostime).." {cwd} {git}\n\x1b[32;40m {prompt} \x1b[0m"
     new_value = string.gsub(prompt, "{cwd}", cwd)
     clink.prompt.value = string.gsub(new_value, "{prompt}", getRandomPrompt(ostime))
 end
-
-local arrowSymbol = ""
-local branchSymbol = ""
 
 --- copied from clink.lua
  -- Resolves closest directory location for specified directory.
