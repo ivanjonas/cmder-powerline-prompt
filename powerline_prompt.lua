@@ -17,6 +17,8 @@ local symbols = {
     branch = "",
     merge = "",
     home = "",
+    ahead = "⯅",
+    behind = "⯆"
 }
 
 local function get_folder_name(path)
@@ -182,6 +184,60 @@ function is_git_merging(git_dir)
     end
 end
 
+function get_ahead_and_behind()
+    local symbolicRefPipe = io.popen("git symbolic-ref HEAD")
+    local symbolicRef = symbolicRefPipe:lines()()
+    symbolicRefPipe:close()
+
+    if string.find(symbolicRef, "fatal", 1, true) then
+        -- guard against catastrophic git problem
+        return ""
+    end
+
+    local branch = string.sub(symbolicRef, 12)
+    local remotePipe = io.popen((string.gsub("git config branch.{branch}.remote", "{branch}", branch)))
+    local remote = remotePipe:lines()()
+    remotePipe:close()
+
+    if not remote then
+        -- guard against branches without remotes
+        return ""
+    end
+
+    -- we have a branch with a remote, which is possibly local
+    local remoteRef
+    local mergePipe = io.popen((string.gsub("git config branch.{branch}.merge", "{branch}", branch)))
+    local merge = mergePipe:lines()()
+    mergePipe:close()
+
+    if remote == '.' then -- "local"
+        remoteRef = merge
+    else
+        remoteRef = "refs/remotes/"..remote.."/"..(string.sub(merge, 12))
+    end
+
+    local ahead = 0
+    local behind = 0
+    local revListPipe = io.popen(("git rev-list --left-right "..remoteRef.."...HEAD"))
+    for revListLine in revListPipe:lines() do
+        local firstString = string.sub(revListLine, 1, 1)
+        if firstString == "<" then
+            behind = behind + 1
+        elseif firstString == ">" then
+            ahead = ahead + 1
+        end
+    end
+    revListPipe:close()
+
+    if ahead > 0 then
+        return " "..symbols.ahead..ahead
+    elseif behind > 0 then
+        return " "..symbols.behind..behind
+    end
+
+    return ""
+end
+
 -- adopted from clink.lua
 -- Modified to add colors and arrow symbols
 function colorful_git_prompt_filter()
@@ -217,7 +273,7 @@ function colorful_git_prompt_filter()
                 closingcolor = closingcolors.dirty
             end
 
-            clink.prompt.value = string.gsub(clink.prompt.value, "{git}", color..symbols.branch.." "..branch..closingcolor)
+            clink.prompt.value = string.gsub(clink.prompt.value, "{git}", color..symbols.branch.." "..branch..get_ahead_and_behind()..closingcolor)
             return false
         end
     end
